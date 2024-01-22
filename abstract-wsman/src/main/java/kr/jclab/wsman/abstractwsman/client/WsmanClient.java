@@ -1,5 +1,6 @@
 package kr.jclab.wsman.abstractwsman.client;
 
+import kr.jclab.wsman.abstractwsman.WSManConstants;
 import kr.jclab.wsman.abstractwsman.client.internal.AbstractBridgedClientFactoryBean;
 import org.apache.cxf.binding.soap.SoapBindingConstants;
 import org.apache.cxf.endpoint.Client;
@@ -8,13 +9,9 @@ import org.apache.cxf.frontend.ClientProxy;
 import org.apache.cxf.interceptor.transform.TransformInInterceptor;
 import org.apache.cxf.interceptor.transform.TransformOutInterceptor;
 import org.apache.cxf.jaxws.JaxWsProxyFactoryBean;
-import org.apache.cxf.transport.Conduit;
 import org.apache.cxf.ws.addressing.JAXWSAConstants;
 import org.apache.cxf.ws.addressing.WSAddressingFeature;
-import org.opennms.core.wsman.WSManConstants;
 import org.xmlsoap.schemas.ws._2004._09.enumeration.DataSource;
-import org.xmlsoap.schemas.ws._2004._09.enumeration.Enumerate;
-import org.xmlsoap.schemas.ws._2004._09.enumeration.EnumerateResponse;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -134,7 +131,7 @@ public class WsmanClient {
 //        return maps;
 //    }
 
-    public DataSource createEnumerator(String resourceUri) {
+    public <T> T createResource(String resourceUri, Class<T> clazz) {
         // Relocate the Filter element to the WS-Man namespace.
         // Our WSDLs generate it one package but the servers expect it to be in the other
 
@@ -146,18 +143,18 @@ public class WsmanClient {
                 "{" + WSManConstants.XML_NS_DMTF_WSMAN_V1 + "}Filter"
         );
 
-        DataSource dataSource = createProxyFor(
-                DataSource.class,
+        T resource = createProxyFor(
+                clazz,
                 outTransformMap,
                 Collections.emptyMap()
         );
 
-        Client cxfClient = ClientProxy.getClient(dataSource);
+        Client cxfClient = ClientProxy.getClient(resource);
 
         // Add the WS-Man ResourceURI to the SOAP header
         WSManHeaderInterceptor interceptor = new WSManHeaderInterceptor(resourceUri);
         cxfClient.getOutInterceptors().add(interceptor);
 
-        return dataSource;
+        return resource;
     }
 }
