@@ -1,0 +1,1 @@
+SYSTEM "http://schemas.xmlsoap.org/ws/2004/08/addressing" "src/main/resources/xsd/addressing.xsd"

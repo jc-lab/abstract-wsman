@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions
+        targetNamespace="http://schemas.xmlsoap.org/ws/2004/09/enumeration"
+        xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+        xmlns:xs="http://www.w3.org/2001/XMLSchema" >
+
+    <wsdl:types>
+        <xs:schema>
+            <xs:import
+                    namespace="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd"
+                    schemaLocation="wsman.xsd" />
+        </xs:schema>
+        <xs:schema>
+            <xs:import
+                    namespace="http://schemas.dmtf.org/wbem/wsman/identity/1/wsmanidentity.xsd"
+                    schemaLocation="wsmanidentity.xsd" />
+        </xs:schema>
+    </wsdl:types>
+</wsdl:definitions>
