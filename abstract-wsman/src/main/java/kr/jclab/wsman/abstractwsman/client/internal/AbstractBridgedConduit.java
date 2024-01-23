@@ -111,16 +111,16 @@ public class AbstractBridgedConduit extends AbstractConduit {
         }
     }
 
-    private OutputStream createOutputStream(Message inMessage) {
-        return new WrappedOutputStream(inMessage);
+    private OutputStream createOutputStream(Message message) {
+        return new WrappedOutputStream(message);
     }
 
     class WrappedOutputStream extends ByteArrayOutputStream implements ClientResponseHandler {
         private final ClientRequestContext requestContext;
         private final Message outMessage;
 
-        WrappedOutputStream(Message inMessage) {
-            this.requestContext = new ClientRequestContext(inMessage, this);
+        WrappedOutputStream(Message message) {
+            this.requestContext = new ClientRequestContext(message, this);
             this.outMessage = requestContext.getOutMessage();
         }
 

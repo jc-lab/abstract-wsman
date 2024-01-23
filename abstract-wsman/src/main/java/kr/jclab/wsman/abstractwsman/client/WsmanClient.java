@@ -9,13 +9,15 @@ import org.apache.cxf.frontend.ClientProxy;
 import org.apache.cxf.interceptor.transform.TransformInInterceptor;
 import org.apache.cxf.interceptor.transform.TransformOutInterceptor;
 import org.apache.cxf.jaxws.JaxWsProxyFactoryBean;
-import org.apache.cxf.ws.addressing.JAXWSAConstants;
-import org.apache.cxf.ws.addressing.WSAddressingFeature;
+import org.apache.cxf.ws.addressing.*;
 import org.xmlsoap.schemas.ws._2004._09.enumeration.DataSource;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.apache.cxf.ws.addressing.ContextUtils.WSA_OBJECT_FACTORY;
+import static org.apache.cxf.ws.addressing.VersionTransformer.*;
 
 public class WsmanClient {
     // private static final org.apache.cxf.ws.addressing.v200408.ObjectFactory WSA_OBJECT_FACTORY = new org.apache.cxf.ws.addressing.v200408.ObjectFactory();
@@ -44,9 +46,9 @@ public class WsmanClient {
         // bus, the same instance will be shared across all factories, and the policies will continue to accumulate.
         factory.setBus(clientFactoryBean.getBus());
 
-        WSAddressingFeature feature = new WSAddressingFeature();
-        feature.setResponses(WSAddressingFeature.AddressingResponses.ANONYMOUS);
-        factory.getFeatures().add(feature);
+//        WSAddressingFeature feature = new WSAddressingFeature();
+//        feature.setResponses(WSAddressingFeature.AddressingResponses.ANONYMOUS);
+//        factory.getFeatures().add(feature);
 
         // Force the client to use SOAP v1.2, as per:
         // R13.1-1: A service shall at least receive and send SOAP 1.2 SOAP Envelopes.
@@ -64,7 +66,14 @@ public class WsmanClient {
 
         // Retrieve the underlying client, so we can fine tune it
         Client cxfClient = ClientProxy.getClient(proxyService);
+
+
+        WSAddressingFeature feature = new WSAddressingFeature();
+        feature.setResponses(WSAddressingFeature.AddressingResponses.ANONYMOUS);
+        feature.initialize(cxfClient, this.clientFactoryBean.getBus());
+
         Map<String, Object> requestContext = cxfClient.getRequestContext();
+        requestContext.put(MAPAggregator.ADDRESSING_NAMESPACE, WSManConstants.XML_NS_WS_2004_08_ADDRESSING);
 
         // Add static name-space mappings, this helps when manually inspecting the XML
         Map<String, String> nsMap = new HashMap<>();
@@ -73,18 +82,6 @@ public class WsmanClient {
         nsMap.put("wsman", WSManConstants.XML_NS_DMTF_WSMAN_V1);
         nsMap.put("wsmid", WSManConstants.XML_NS_DMTF_WSMAN_IDENTITY_V1);
         cxfClient.getRequestContext().put("soap.env.ns.map", nsMap);
-
-        // Set the Reply-To header to the anonymous address
-//        requestContext.put(JAXWSAConstants.CLIENT_ADDRESSING_PROPERTIES, createAddressingPropertiesMap());
-
-        // if (m_endpoint.getServerVersion() == WSManVersion.WSMAN_1_0) {
-            // WS-Man 1.0 does not support the W3C WS-Addressing, so we need to change the namespace
-            // "http://www.w3.org/2005/08/addressing" becomes "http://schemas.xmlsoap.org/ws/2004/08/addressing"
-            outTransformMap.put(
-                    "{" + JAXWSAConstants.NS_WSA + "}*",
-                    "{" + WSManConstants.XML_NS_WS_2004_08_ADDRESSING + "}*"
-            );
-        // }
 
         // Optionally apply any in and/or out transformers
         if (!outTransformMap.isEmpty()) {
@@ -119,17 +116,6 @@ public class WsmanClient {
 
         return proxyService;
     }
-
-//    private AddressingProperties createAddressingPropertiesMap() {
-//        AddressingProperties maps = new AddressingProperties();
-//        AttributedURI address = WSA_OBJECT_FACTORY.createAttributedURI();
-//        EndpointReferenceType ref = WSA_OBJECT_FACTORY.createEndpointReferenceType();
-//        address.setValue(VersionTransformer.Names200408.WSA_ANONYMOUS_ADDRESS);
-//        ref.setAddress(address);
-//        maps.setReplyTo(ref);
-//        maps.setFaultTo(ref);
-//        return maps;
-//    }
 
     public <T> T createResource(String resourceUri, Class<T> clazz) {
         // Relocate the Filter element to the WS-Man namespace.
