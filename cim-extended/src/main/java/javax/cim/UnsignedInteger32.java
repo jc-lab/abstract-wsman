@@ -221,4 +221,19 @@ public class UnsignedInteger32 extends Number implements Comparable<UnsignedInte
 		return Long.toString(this.iValue);
 	}
 
+	public static UnsignedInteger32 valueOf(String s) {
+		return new UnsignedInteger32(Long.parseLong(s));
+	}
+
+	public static class XmlAdapter extends jakarta.xml.bind.annotation.adapters.XmlAdapter<String, UnsignedInteger32> {
+		@Override
+		public UnsignedInteger32 unmarshal(String v) throws Exception {
+			return UnsignedInteger32.valueOf(v);
+		}
+
+		@Override
+		public String marshal(UnsignedInteger32 v) throws Exception {
+			return v.toString();
+		}
+	}
 }

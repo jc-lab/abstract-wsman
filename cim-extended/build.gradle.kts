@@ -18,6 +18,8 @@ java {
 dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
+
+    api("jakarta.xml.bind:jakarta.xml.bind-api:3.0.1")
 }
 
 tasks.getByName<Test>("test") {

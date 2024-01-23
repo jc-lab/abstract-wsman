@@ -253,4 +253,19 @@ public class UnsignedInteger64 extends Number implements Comparable<UnsignedInte
 		return this.iValue.toString();
 	}
 
+	public static UnsignedInteger64 valueOf(String s) {
+		return new UnsignedInteger64(new BigInteger(s));
+	}
+
+	public static class XmlAdapter extends jakarta.xml.bind.annotation.adapters.XmlAdapter<String, UnsignedInteger64> {
+		@Override
+		public UnsignedInteger64 unmarshal(String v) throws Exception {
+			return UnsignedInteger64.valueOf(v);
+		}
+
+		@Override
+		public String marshal(UnsignedInteger64 v) throws Exception {
+			return v.toString();
+		}
+	}
 }

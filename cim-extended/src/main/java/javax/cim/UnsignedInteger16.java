@@ -222,4 +222,19 @@ public class UnsignedInteger16 extends Number implements Comparable<UnsignedInte
 		return Integer.toString(this.iValue);
 	}
 
+	public static UnsignedInteger16 valueOf(String s) {
+		return new UnsignedInteger16(Integer.parseInt(s));
+	}
+
+	public static class XmlAdapter extends jakarta.xml.bind.annotation.adapters.XmlAdapter<String, UnsignedInteger16> {
+		@Override
+		public UnsignedInteger16 unmarshal(String v) throws Exception {
+			return UnsignedInteger16.valueOf(v);
+		}
+
+		@Override
+		public String marshal(UnsignedInteger16 v) throws Exception {
+			return v.toString();
+		}
+	}
 }

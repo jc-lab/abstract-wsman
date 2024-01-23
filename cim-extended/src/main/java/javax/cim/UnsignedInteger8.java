@@ -224,4 +224,19 @@ public class UnsignedInteger8 extends Number implements Comparable<UnsignedInteg
 		return Short.toString(this.iValue);
 	}
 
+	public static UnsignedInteger8 valueOf(String s) {
+		return new UnsignedInteger8(Short.parseShort(s));
+	}
+
+	public static class XmlAdapter extends jakarta.xml.bind.annotation.adapters.XmlAdapter<String, UnsignedInteger8> {
+		@Override
+		public UnsignedInteger8 unmarshal(String v) throws Exception {
+			return UnsignedInteger8.valueOf(v);
+		}
+
+		@Override
+		public String marshal(UnsignedInteger8 v) throws Exception {
+			return v.toString();
+		}
+	}
 }
