@@ -2,40 +2,43 @@ package kr.jclab.wsman.abstractwsman.client;
 
 import kr.jclab.wsman.abstractwsman.WSManConstants;
 import kr.jclab.wsman.abstractwsman.client.internal.AbstractBridgedClientFactoryBean;
+import kr.jclab.wsman.abstractwsman.client.internal.WsmanServiceConfiguration;
+import org.apache.cxf.Bus;
 import org.apache.cxf.binding.soap.SoapBindingConstants;
 import org.apache.cxf.endpoint.Client;
-import org.apache.cxf.frontend.ClientFactoryBean;
 import org.apache.cxf.frontend.ClientProxy;
 import org.apache.cxf.interceptor.transform.TransformInInterceptor;
 import org.apache.cxf.interceptor.transform.TransformOutInterceptor;
+import org.apache.cxf.jaxws.JaxWsClientFactoryBean;
 import org.apache.cxf.jaxws.JaxWsProxyFactoryBean;
 import org.apache.cxf.ws.addressing.*;
-import org.xmlsoap.schemas.ws._2004._09.enumeration.DataSource;
+import org.apache.cxf.wsdl.service.factory.AbstractServiceConfiguration;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-
-import static org.apache.cxf.ws.addressing.ContextUtils.WSA_OBJECT_FACTORY;
-import static org.apache.cxf.ws.addressing.VersionTransformer.*;
 
 public class WsmanClient {
     // private static final org.apache.cxf.ws.addressing.v200408.ObjectFactory WSA_OBJECT_FACTORY = new org.apache.cxf.ws.addressing.v200408.ObjectFactory();
 
-    private final ClientFactoryBean clientFactoryBean;
+    private final Bus bus;
+    private final ClientHandler clientHandler;
     private final String address;
 
-    public WsmanClient(ClientFactoryBean clientFactoryBean, String address) {
-        this.clientFactoryBean = clientFactoryBean;
+    public WsmanClient(Bus bus, ClientHandler clientHandler, String address) {
+        this.bus = bus;
+        this.clientHandler = clientHandler;
         this.address = address;
     }
 
-    public WsmanClient(ClientHandler clientHandler, String address) {
-        this.clientFactoryBean = new AbstractBridgedClientFactoryBean(clientHandler);
-        this.address = address;
+    public JaxWsClientFactoryBean createClientFactoryBean() {
+        AbstractBridgedClientFactoryBean clientFactoryBean = new AbstractBridgedClientFactoryBean(clientHandler);
+        clientFactoryBean.setBus(bus);
+        return clientFactoryBean;
     }
 
-    public JaxWsProxyFactoryBean createFactoryFor(Class<?> serviceClass, String address) {
+    public JaxWsProxyFactoryBean createFactoryFor(JaxWsClientFactoryBean clientFactoryBean, Class<?> serviceClass, String address) {
         JaxWsProxyFactoryBean factory = new JaxWsProxyFactoryBean(clientFactoryBean);
         factory.setServiceClass(serviceClass);
         factory.setAddress(address);
@@ -62,15 +65,15 @@ public class WsmanClient {
             Map<String, String> outTransformMap,
             Map<String, String> inTransformMap
     ) {
-        T proxyService = createFactoryFor(serviceClass, address).create(serviceClass);
+        JaxWsClientFactoryBean clientFactoryBean = createClientFactoryBean();
+        T proxyService = createFactoryFor(clientFactoryBean, serviceClass, address).create(serviceClass);
 
         // Retrieve the underlying client, so we can fine tune it
         Client cxfClient = ClientProxy.getClient(proxyService);
 
-
         WSAddressingFeature feature = new WSAddressingFeature();
         feature.setResponses(WSAddressingFeature.AddressingResponses.ANONYMOUS);
-        feature.initialize(cxfClient, this.clientFactoryBean.getBus());
+        feature.initialize(cxfClient, clientFactoryBean.getBus());
 
         Map<String, Object> requestContext = cxfClient.getRequestContext();
         requestContext.put(MAPAggregator.ADDRESSING_NAMESPACE, WSManConstants.XML_NS_WS_2004_08_ADDRESSING);
@@ -138,8 +141,9 @@ public class WsmanClient {
         Client cxfClient = ClientProxy.getClient(resource);
 
         // Add the WS-Man ResourceURI to the SOAP header
-        WSManHeaderInterceptor interceptor = new WSManHeaderInterceptor(resourceUri);
-        cxfClient.getOutInterceptors().add(interceptor);
+        WSManHeaderInterceptor headerInterceptor = new WSManHeaderInterceptor(resourceUri);
+        cxfClient.getOutInterceptors().add(headerInterceptor);
+        cxfClient.getRequestContext().put(WSManHeaderInterceptor.class.getName(), headerInterceptor);
 
         return resource;
     }

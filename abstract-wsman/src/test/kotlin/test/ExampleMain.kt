@@ -1,14 +1,10 @@
 package test
 
-import com.google.common.collect.Maps
-import kr.jclab.wsman.abstractwsman.WSManConstants
 import kr.jclab.wsman.abstractwsman.client.ClientHandler
 import kr.jclab.wsman.abstractwsman.client.ClientRequestContext
-import kr.jclab.wsman.abstractwsman.client.WSManHeaderInterceptor
 import kr.jclab.wsman.abstractwsman.client.WsmanClient
 import kr.jclab.wsman.abstractwsman.frame.SimpleResponseFrame
 import org.apache.cxf.BusFactory
-import org.apache.cxf.frontend.ClientProxy
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients
@@ -63,7 +59,7 @@ fun main() {
         simpleClientHandler.httpClient.start()
 
         val wsmanClient = WsmanClient(simpleClientHandler, targetUri.toString())
-        val enumerator = wsmanClient.createEnumerator("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_System")
+        val enumerator = wsmanClient.createResource("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_System", DataSource::class.java)
 
         val enumResult = enumerator.enumerateOp(Enumerate())
         println("enumResult : ${enumResult}")

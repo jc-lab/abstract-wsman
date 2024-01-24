@@ -9,10 +9,7 @@ import org.apache.cxf.headers.Header;
 import org.apache.cxf.interceptor.Fault;
 import org.apache.cxf.jaxb.JAXBDataBinding;
 import org.apache.cxf.phase.Phase;
-import org.dmtf.schemas.wbem.wsman._1.wsman.AttributableURI;
-import org.dmtf.schemas.wbem.wsman._1.wsman.ObjectFactory;
-import org.dmtf.schemas.wbem.wsman._1.wsman.SelectorSetType;
-import org.dmtf.schemas.wbem.wsman._1.wsman.SelectorType;
+import org.dmtf.schemas.wbem.wsman._1.wsman.*;
 
 import java.util.Collections;
 import java.util.List;
@@ -20,9 +17,11 @@ import java.util.Map;
 import java.util.Objects;
 
 public class WSManHeaderInterceptor extends AbstractSoapInterceptor {
-    private final String m_resourceUri;
-    private final Map<String, String> m_selectors;
+    private final String resourceUri;
+    private final Map<String, String> selectors;
     private final ObjectFactory factory = new ObjectFactory();
+
+    private AttributableDuration operationTimeout = null;
 
     public WSManHeaderInterceptor(String resourceUri) {
         this(resourceUri, Collections.emptyMap());
@@ -31,8 +30,12 @@ public class WSManHeaderInterceptor extends AbstractSoapInterceptor {
     public WSManHeaderInterceptor(String resourceUri, Map<String, String> selectors) {
         super(Phase.POST_LOGICAL);
         addAfter(SoapPreProtocolOutInterceptor.class.getName());
-        m_resourceUri = Objects.requireNonNull(resourceUri, "resourceUri cannot be null");
-        m_selectors = Objects.requireNonNull(selectors, "selector cannot be null");
+        this.resourceUri = Objects.requireNonNull(resourceUri, "resourceUri cannot be null");
+        this.selectors = Objects.requireNonNull(selectors, "selector cannot be null");
+    }
+
+    public void setOperationTimeout(AttributableDuration operationTimeout) {
+        this.operationTimeout = operationTimeout;
     }
 
     @Override
@@ -42,15 +45,20 @@ public class WSManHeaderInterceptor extends AbstractSoapInterceptor {
         // Always add the resourceUri header
         headers.add(getResourceUriHeader());
         // Add the selectorSet header iff have one or more selectors
-        if (!m_selectors.isEmpty()) {
+        if (!selectors.isEmpty()) {
             headers.add(getSelectorSetHeader());
         }
+
+        if (this.operationTimeout != null) {
+            headers.add(this.getOperationTimeoutHeader());
+        }
+
         message.put(Header.HEADER_LIST, headers);
     }
 
     private Header getResourceUriHeader() {
         AttributableURI uri = new AttributableURI();
-        uri.setValue(m_resourceUri);
+        uri.setValue(resourceUri);
         JAXBElement<AttributableURI> resourceURI = factory.createResourceURI(uri);
         try {
             return new Header(resourceURI.getName(), resourceURI, new JAXBDataBinding(AttributableURI.class));
@@ -61,7 +69,7 @@ public class WSManHeaderInterceptor extends AbstractSoapInterceptor {
 
     private Header getSelectorSetHeader() {
         SelectorSetType selectorSetType = factory.createSelectorSetType();
-        for (Map.Entry<String, String> selectorEntry : m_selectors.entrySet()) {
+        for (Map.Entry<String, String> selectorEntry : selectors.entrySet()) {
             SelectorType selector = factory.createSelectorType();
             selector.setName(selectorEntry.getKey());
             selector.getContent().add(selectorEntry.getValue());
@@ -70,6 +78,15 @@ public class WSManHeaderInterceptor extends AbstractSoapInterceptor {
         JAXBElement<SelectorSetType> el = factory.createSelectorSet(selectorSetType);
         try {
             return new Header(el.getName(), el, new JAXBDataBinding(el.getValue().getClass()));
+        } catch (JAXBException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private Header getOperationTimeoutHeader() {
+        JAXBElement<AttributableDuration> operationTimeout = factory.createOperationTimeout(this.operationTimeout);
+        try {
+            return new Header(operationTimeout.getName(), operationTimeout, new JAXBDataBinding(AttributableDuration.class));
         } catch (JAXBException e) {
             throw new RuntimeException(e);
         }
