@@ -58,7 +58,7 @@ fun main() {
     SimpleClientHandler(targetUri).use { simpleClientHandler ->
         simpleClientHandler.httpClient.start()
 
-        val wsmanClient = WsmanClient(simpleClientHandler, targetUri.toString())
+        val wsmanClient = WsmanClient(bus, simpleClientHandler, targetUri.toString())
         val enumerator = wsmanClient.createResource("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_System", DataSource::class.java)
 
         val enumResult = enumerator.enumerateOp(Enumerate())
