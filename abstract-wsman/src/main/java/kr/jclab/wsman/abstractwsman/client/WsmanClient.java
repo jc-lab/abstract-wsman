@@ -120,7 +120,7 @@ public class WsmanClient {
         return proxyService;
     }
 
-    public <T> T createResource(String resourceUri, Class<T> clazz) {
+    public <T> T createResource(String resourceUri, Map<String, String> selectors, Class<T> clazz) {
         // Relocate the Filter element to the WS-Man namespace.
         // Our WSDLs generate it one package but the servers expect it to be in the other
 
@@ -141,10 +141,14 @@ public class WsmanClient {
         Client cxfClient = ClientProxy.getClient(resource);
 
         // Add the WS-Man ResourceURI to the SOAP header
-        WSManHeaderInterceptor headerInterceptor = new WSManHeaderInterceptor(resourceUri);
+        WSManHeaderInterceptor headerInterceptor = new WSManHeaderInterceptor(resourceUri, selectors);
         cxfClient.getOutInterceptors().add(headerInterceptor);
         cxfClient.getRequestContext().put(WSManHeaderInterceptor.class.getName(), headerInterceptor);
 
         return resource;
+    }
+
+    public <T> T createResource(String resourceUri, Class<T> clazz) {
+        return createResource(resourceUri, Collections.emptyMap(), clazz);
     }
 }
