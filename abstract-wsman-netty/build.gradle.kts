@@ -31,8 +31,11 @@ dependencies {
     api("org.apache.cxf:cxf-rt-frontend-jaxws:${Version.APACHE_CXF}")
     api("org.apache.cxf:cxf-rt-transports-http:${Version.APACHE_CXF}")
     api("org.apache.cxf:cxf-rt-transports-local:${Version.APACHE_CXF}")
+    api("org.apache.cxf:cxf-rt-transports-http-netty-client:${Version.APACHE_CXF}")
     api("org.apache.cxf:cxf-rt-ws-mex:${Version.APACHE_CXF}")
     api("org.apache.cxf:cxf-rt-ws-addr:${Version.APACHE_CXF}")
+
+    api(project(":abstract-wsman"))
 }
 
 cxfCodegen {
