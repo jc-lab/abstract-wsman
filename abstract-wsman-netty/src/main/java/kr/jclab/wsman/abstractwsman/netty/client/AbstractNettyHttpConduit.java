@@ -63,7 +63,6 @@ public class AbstractNettyHttpConduit extends HttpClientHTTPConduit implements B
      * Enable HTTP/2 support
      */
     public static final String ENABLE_HTTP2 = "org.apache.cxf.transports.http2.enabled";
-    public static final String USE_ASYNC = "use.async.http.conduit";
     public static final String MAX_RESPONSE_CONTENT_LENGTH =
             "org.apache.cxf.transport.http.netty.maxResponseContentLength";
     static final Integer DEFAULT_MAX_RESPONSE_CONTENT_LENGTH = 1048576;
@@ -114,42 +113,11 @@ public class AbstractNettyHttpConduit extends HttpClientHTTPConduit implements B
             throw new MalformedURLException("unknown protocol: " + s);
         }
 
-        Object o = message.getContextualProperty(USE_ASYNC);
-        if (o == null) {
-            o = nettyChannelFactory.getUseAsyncPolicy();
-        }
-        switch (NettyHttpConduitFactory.UseAsyncPolicy.getPolicy(o)) {
-            case ALWAYS:
-                o = true;
-                break;
-            case NEVER:
-                o = false;
-                break;
-            case ASYNC_ONLY:
-            default:
-                o = !message.getExchange().isSynchronous();
-                break;
-        }
-
         // check tlsClientParameters from message header
         TLSClientParameters clientParameters = message.get(TLSClientParameters.class);
         if (clientParameters == null) {
             clientParameters = tlsClientParameters;
         }
-        if ("https".equals(uri.getScheme())
-                && clientParameters != null
-                && clientParameters.getSSLSocketFactory() != null) {
-            //if they configured in an SSLSocketFactory, we cannot do anything
-            //with it as the NIO based transport cannot use socket created from
-            //the SSLSocketFactory.
-            o = false;
-        }
-        if (!PropertyUtils.isTrue(o)) {
-            message.put(USE_ASYNC, Boolean.FALSE);
-            super.setupConnection(message, addressChanged ? new Address(uriString, uri) : address, csPolicy);
-            return;
-        }
-        message.put(USE_ASYNC, Boolean.TRUE);
 
         if (StringUtils.isEmpty(uri.getPath())) {
             //hc needs to have the path be "/"
@@ -191,25 +159,21 @@ public class AbstractNettyHttpConduit extends HttpClientHTTPConduit implements B
                                               boolean isChunking,
                                               int chunkThreshold) throws IOException {
 
-        if (Boolean.TRUE.equals(message.get(USE_ASYNC))) {
-
-            NettyHttpClientRequest entity = message.get(NettyHttpClientRequest.class);
-            NettyWrappedOutputStream out = new NettyWrappedOutputStream(message,
-                    needToCacheRequest,
-                    isChunking,
-                    chunkThreshold,
-                    getConduitName(),
-                    entity.getUri());
-            entity.createRequest(out.getOutBuffer());
-            // TODO need to check how to set the Chunked feature
-            //request.getRequest().setChunked(true);
-            Object contentType = message.get(Message.CONTENT_TYPE);
-            if (contentType != null) {
-                entity.getRequest().headers().set(Message.CONTENT_TYPE, contentType);
-            }
-            return out;
+        NettyHttpClientRequest entity = message.get(NettyHttpClientRequest.class);
+        NettyWrappedOutputStream out = new NettyWrappedOutputStream(message,
+                needToCacheRequest,
+                isChunking,
+                chunkThreshold,
+                getConduitName(),
+                entity.getUri());
+        entity.createRequest(out.getOutBuffer());
+        // TODO need to check how to set the Chunked feature
+        //request.getRequest().setChunked(true);
+        Object contentType = message.get(Message.CONTENT_TYPE);
+        if (contentType != null) {
+            entity.getRequest().headers().set(Message.CONTENT_TYPE, contentType);
         }
-        return super.createOutputStream(message, needToCacheRequest, isChunking, chunkThreshold);
+        return out;
     }
 
     public class NettyWrappedOutputStream extends WrappedOutputStream {
