@@ -611,8 +611,9 @@ public class AbstractNettyHttpConduit extends HttpClientHTTPConduit implements B
                 entity = outMessage.get(NettyHttpClientRequest.class);
                 //reset the buffers
                 outBuffer.clear();
+                outBuffer = outBuffer.alloc().buffer(outBuffer.capacity());
                 outputStream = new ByteBufOutputStream(outBuffer);
-
+                entity.createRequest(outBuffer);
             } catch (URISyntaxException e) {
                 throw new IOException(e);
             }
