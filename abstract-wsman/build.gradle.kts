@@ -1,10 +1,14 @@
+import org.gradle.kotlin.dsl.withType
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import kotlin.collections.plus
+
 plugins {
     `java-library`
     `maven-publish`
     `signing`
 
     kotlin("jvm") version Version.KOTLIN
-    id("io.mateo.cxf-codegen") version "2.2.0" // "1.2.1"
+    id("io.mateo.cxf-codegen") version "2.5.0"
 }
 
 repositories {
@@ -16,6 +20,13 @@ java {
     targetCompatibility = JavaVersion.VERSION_1_8
     withJavadocJar()
     withSourcesJar()
+}
+
+tasks.withType<KotlinCompile> {
+    kotlinOptions {
+        freeCompilerArgs += "-Xjsr305=strict"
+        jvmTarget = "1.8"
+    }
 }
 
 dependencies {
@@ -40,24 +51,50 @@ cxfCodegen {
 }
 
 val wsdlListFile = file("$buildDir/wsdlList.tmp")
+val wsdlCatalogFile = file("$buildDir/wsdl2java-catalog.txt")
+val eventingCodegenWsdlFile = file("$buildDir/eventing-codegen.wsdl")
 tasks.register("generateWsdl", io.mateo.cxf.codegen.wsdl2java.Wsdl2Java::class) {
     doFirst {
+        val eventingSchemaUri = file("$projectDir/src/main/resources/xsd/eventing.xsd").toURI().toString()
+        val eventingCodegenWsdl = file("$projectDir/src/main/resources/xsd/eventing.wsdl")
+            .readText()
+            .replace("schemaLocation='eventing.xsd'", "schemaLocation='$eventingSchemaUri'")
+            .replace(
+                Regex(
+                    """\s*<wsdl:operation name='SubscriptionEnd' >.*?</wsdl:operation>\s*""",
+                    setOf(RegexOption.DOT_MATCHES_ALL)
+                ),
+                "\n"
+            )
+        eventingCodegenWsdlFile.writeText(eventingCodegenWsdl)
+
+        file("$projectDir/src/main/resources/xsd/eventing.xsd")
+            .copyTo(eventingCodegenWsdlFile.parentFile.resolve( "eventing.xsd"), overwrite = true)
+
         wsdlListFile.writeText(
             listOf(
                 file("$projectDir/src/main/resources/xsd/enumeration.wsdl"),
                 file("$projectDir/src/main/resources/xsd/wsman.wsdl"),
                 file("$projectDir/src/main/resources/xsd/transfer.wsdl"),
-            )
-                .map { it.absolutePath }
-                .joinToString("\n")
+                eventingCodegenWsdlFile
+            ).joinToString("\n") { it.toURI().toString() }
+        )
+        wsdlCatalogFile.writeText(
+            """
+            SYSTEM "http://schemas.xmlsoap.org/ws/2004/08/addressing" "${file("$projectDir/src/main/resources/xsd/addressing.xsd").toURI()}"
+            SYSTEM "http://schemas.xmlsoap.org/ws/2004/08/eventing" "${file("$projectDir/src/main/resources/xsd/eventing.xsd").toURI()}"
+            """.trimIndent()
         )
     }
-    outputs.file(wsdlListFile)
+//    outputs.file(wsdlListFile)
+//    outputs.file(wsdlCatalogFile)
+//    outputs.file(eventingCodegenWsdlFile)
     toolOptions {
         wsdl.set(wsdlListFile.absolutePath)
         wsdlList.set(true)
         bindingFiles.set(listOf("$projectDir/src/main/resources/global.xjb"))
-        catalog.set("$projectDir/src/main/resources/wsdl2java-catalog.txt")
+        catalog.set(wsdlCatalogFile.absolutePath)
+        validateWsdl.set("none")
         markGenerated.set(true)
         verbose.set(true)
         extendedSoapHeaders.set(true)
